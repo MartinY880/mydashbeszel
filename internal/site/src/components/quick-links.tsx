@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { $quickLinks, type QuickLink } from "@/lib/stores"
+import { $quickLinks } from "@/lib/stores"
+import { saveQuickLinks } from "@/lib/api"
+import type { QuickLink } from "@/types"
 import {
 	Dialog,
 	DialogContent,
@@ -46,12 +48,12 @@ export function QuickLinks() {
 				? { ...l, name: editName, localUrl: editLocalUrl, domainUrl: editDomainUrl }
 				: l
 		)
-		$quickLinks.set(updated)
+		saveQuickLinks(updated)
 		setEditingLink(null)
 	}
 
 	function removeLink(id: string) {
-		$quickLinks.set(quickLinks.filter((l) => l.id !== id))
+		saveQuickLinks(quickLinks.filter((l) => l.id !== id))
 	}
 
 	return (

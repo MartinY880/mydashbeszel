@@ -300,12 +300,20 @@ export interface UserSettings {
 	colorCrit?: number
 	hourFormat?: HourFormat
 	layoutWidth?: number
+	quickLinks?: QuickLink[]
 }
 
 type ChartDataContainer = {
 	created: number | null
 } & {
 	[key: string]: key extends "created" ? never : ContainerStats
+}
+
+export interface QuickLink {
+	id: string
+	name: string
+	localUrl: string
+	domainUrl: string
 }
 
 export interface SemVer {

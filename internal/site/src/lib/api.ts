@@ -2,8 +2,8 @@ import { t } from "@lingui/core/macro"
 import PocketBase from "pocketbase"
 import { basePath } from "@/components/router"
 import { toast } from "@/components/ui/use-toast"
-import type { ChartTimes, UserSettings } from "@/types"
-import { $alerts, $allSystemsById, $allSystemsByName, $userSettings } from "./stores"
+import type { ChartTimes, QuickLink, UserSettings } from "@/types"
+import { $alerts, $allSystemsById, $allSystemsByName, $quickLinks, $userSettings } from "./stores"
 import { chartTimeData } from "./utils"
 
 /** PocketBase JS Client */
@@ -31,6 +31,7 @@ export function logOut() {
 	$allSystemsById.set({})
 	$alerts.set({})
 	$userSettings.set({} as UserSettings)
+	$quickLinks.set([])
 	sessionStorage.setItem("lo", "t") // prevent auto login on logout
 	pb.authStore.clear()
 	pb.realtime.unsubscribe()
@@ -39,8 +40,38 @@ export function logOut() {
 /** Fetch or create user settings in database */
 export async function updateUserSettings() {
 	try {
-		const req = await pb.collection("user_settings").getFirstListItem("", { fields: "settings" })
+		const req = await pb.collection("user_settings").getFirstListItem("", { fields: "id,settings" })
 		$userSettings.set(req.settings)
+		// Populate quick links from server
+		const serverLinks: QuickLink[] = req.settings?.quickLinks ?? []
+		// Migrate any quick links from localStorage (one-time)
+		const localRaw = localStorage.getItem("besz-quick-links")
+		if (localRaw) {
+			try {
+				const localLinks = JSON.parse(localRaw) as QuickLink[]
+				if (localLinks.length > 0) {
+					const existingIds = new Set(serverLinks.map((l) => l.id))
+					const newLinks = localLinks.filter((l) => !existingIds.has(l.id))
+					if (newLinks.length > 0) {
+						const merged = [...serverLinks, ...newLinks]
+						$quickLinks.set(merged)
+						// Save merged links to server
+						await pb.collection("user_settings").update(req.id, {
+							settings: { ...req.settings, quickLinks: merged },
+						})
+					} else {
+						$quickLinks.set(serverLinks)
+					}
+				} else {
+					$quickLinks.set(serverLinks)
+				}
+			} catch {
+				$quickLinks.set(serverLinks)
+			}
+			localStorage.removeItem("besz-quick-links")
+		} else {
+			$quickLinks.set(serverLinks)
+		}
 		return
 	} catch (e) {
 		console.error("get settings", e)
@@ -49,8 +80,22 @@ export async function updateUserSettings() {
 	try {
 		const createdSettings = await pb.collection("user_settings").create({ user: pb.authStore.record?.id })
 		$userSettings.set(createdSettings.settings)
+		$quickLinks.set([])
 	} catch (e) {
 		console.error("create settings", e)
+	}
+}
+
+/** Save quick links to server-side user settings */
+export async function saveQuickLinks(links: QuickLink[]) {
+	$quickLinks.set(links)
+	try {
+		const req = await pb.collection("user_settings").getFirstListItem("", { fields: "id,settings" })
+		await pb.collection("user_settings").update(req.id, {
+			settings: { ...req.settings, quickLinks: links },
+		})
+	} catch (e) {
+		console.error("save quick links", e)
 	}
 }
 

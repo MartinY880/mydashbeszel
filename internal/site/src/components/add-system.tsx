@@ -18,9 +18,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { isReadOnlyUser, pb } from "@/lib/api"
+import { isReadOnlyUser, pb, saveQuickLinks } from "@/lib/api"
 import { SystemStatus } from "@/lib/enums"
-import { $publicKey, $quickLinks, type QuickLink } from "@/lib/stores"
+import { $publicKey, $quickLinks } from "@/lib/stores"
+import type { QuickLink } from "@/types"
 import { cn, generateToken, tokenMap, useBrowserStorage } from "@/lib/utils"
 import type { SystemRecord } from "@/types"
 import {
@@ -129,7 +130,7 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 						localUrl,
 						domainUrl: quickLinkDomain || "",
 					}
-					$quickLinks.set([...$quickLinks.get(), newLink])
+					saveQuickLinks([...$quickLinks.get(), newLink])
 				}
 				// Reset the current token after successful system
 				// creation so next system gets a new token
