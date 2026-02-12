@@ -5,6 +5,7 @@ import { getPagePath } from "@nanostores/router"
 import { ChevronDownIcon, ExternalLinkIcon, PlusIcon } from "lucide-react"
 import { memo, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
 	Dialog,
 	DialogContent,
@@ -19,7 +20,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { isReadOnlyUser, pb } from "@/lib/api"
 import { SystemStatus } from "@/lib/enums"
-import { $publicKey } from "@/lib/stores"
+import { $publicKey, $quickLinks, type QuickLink } from "@/lib/stores"
 import { cn, generateToken, tokenMap, useBrowserStorage } from "@/lib/utils"
 import type { SystemRecord } from "@/types"
 import {
@@ -81,6 +82,8 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 	const isUnixSocket = hostValue.startsWith("/")
 	const [tab, setTab] = useBrowserStorage("as-tab", "docker")
 	const [token, setToken] = useState(system?.token ?? "")
+	const [addToQuickLinks, setAddToQuickLinks] = useState(false)
+	const [quickLinkDomain, setQuickLinkDomain] = useState("")
 
 	useEffect(() => {
 		;(async () => {
@@ -116,6 +119,18 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 					system: createdSystem.id,
 					token,
 				})
+				// Add quick link if checkbox was checked
+				if (addToQuickLinks) {
+					const portVal = isUnixSocket ? "" : (port.current?.value || "45876")
+					const localUrl = isUnixSocket ? hostValue : `http://${data.host}:${portVal}`
+					const newLink: QuickLink = {
+						id: createdSystem.id,
+						name: data.name as string,
+						localUrl,
+						domainUrl: quickLinkDomain || "",
+					}
+					$quickLinks.set([...$quickLinks.get(), newLink])
+				}
 				// Reset the current token after successful system
 				// creation so next system gets a new token
 				nextSystemToken = null
@@ -223,6 +238,34 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 						</Label>
 						<InputCopy value={token} id="tkn" name="tkn" />
 					</div>
+					{/* Quick links section - only shown when adding a new system */}
+					{!system && (
+						<div className="border rounded-md p-3 mb-2">
+							<div className="flex items-center gap-2">
+								<Checkbox
+									id="quick-link"
+									checked={addToQuickLinks}
+									onCheckedChange={(checked) => setAddToQuickLinks(checked === true)}
+								/>
+								<Label htmlFor="quick-link" className="cursor-pointer text-sm font-medium">
+									<Trans>Add to quick links</Trans>
+								</Label>
+							</div>
+							{addToQuickLinks && (
+								<div className="mt-3 grid xs:grid-cols-[auto_1fr] gap-y-3 gap-x-4 items-center">
+									<Label htmlFor="domain-url" className="xs:text-end text-sm">
+										<Trans>Domain URL</Trans>
+									</Label>
+									<Input
+										id="domain-url"
+										placeholder="https://app.domain.com"
+										value={quickLinkDomain}
+										onChange={(e) => setQuickLinkDomain(e.target.value)}
+									/>
+								</div>
+							)}
+						</div>
+					)}
 					<DialogFooter className="flex justify-end gap-x-2 gap-y-3 flex-col mt-5">
 						{/* Docker */}
 						<TabsContent value="docker" className="contents">

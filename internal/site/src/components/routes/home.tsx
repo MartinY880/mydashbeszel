@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro"
 import { memo, Suspense, useEffect, useMemo } from "react"
 import SystemsTable from "@/components/systems-table/systems-table"
 import { ActiveAlerts } from "@/components/active-alerts"
+import { QuickLinks } from "@/components/quick-links"
 import { FooterRepoLink } from "@/components/footer-repo-link"
 
 export default memo(() => {
@@ -16,6 +17,7 @@ export default memo(() => {
 			<>
 				<div className="flex flex-col gap-4">
 					<ActiveAlerts />
+					<QuickLinks />
 					<Suspense>
 						<SystemsTable />
 					</Suspense>

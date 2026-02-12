@@ -68,3 +68,28 @@ export const $direction = atom<"ltr" | "rtl">("ltr")
  *  is stupid but the table is virtualized and I know this will work.
  */
 export const $longestSystemNameLen = atom(8)
+
+/** Quick link entry for dashboard */
+export interface QuickLink {
+	id: string
+	name: string
+	localUrl: string
+	domainUrl: string
+}
+
+/** Quick links stored in localStorage */
+const savedQuickLinks = (() => {
+	try {
+		const raw = localStorage.getItem("besz-quick-links")
+		return raw ? (JSON.parse(raw) as QuickLink[]) : []
+	} catch {
+		return []
+	}
+})()
+
+export const $quickLinks = atom<QuickLink[]>(savedQuickLinks)
+
+// Persist quick links to localStorage on every change
+$quickLinks.listen((links) => {
+	localStorage.setItem("besz-quick-links", JSON.stringify(links))
+})
