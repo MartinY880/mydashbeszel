@@ -301,6 +301,7 @@ export interface UserSettings {
 	hourFormat?: HourFormat
 	layoutWidth?: number
 	quickLinks?: QuickLink[]
+	externalLinks?: ExternalLink[]
 }
 
 type ChartDataContainer = {
@@ -314,6 +315,14 @@ export interface QuickLink {
 	name: string
 	localUrl: string
 	domainUrl: string
+	category?: string
+}
+
+export interface ExternalLink {
+	id: string
+	label: string
+	url: string
+	icon: string
 	category?: string
 }
 

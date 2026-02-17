@@ -2,8 +2,8 @@ import { t } from "@lingui/core/macro"
 import PocketBase from "pocketbase"
 import { basePath } from "@/components/router"
 import { toast } from "@/components/ui/use-toast"
-import type { ChartTimes, QuickLink, UserSettings } from "@/types"
-import { $alerts, $allSystemsById, $allSystemsByName, $quickLinks, $userSettings } from "./stores"
+import type { ChartTimes, ExternalLink, QuickLink, UserSettings } from "@/types"
+import { $alerts, $allSystemsById, $allSystemsByName, $externalLinks, $quickLinks, $userSettings } from "./stores"
 import { chartTimeData } from "./utils"
 
 /** PocketBase JS Client */
@@ -32,6 +32,7 @@ export function logOut() {
 	$alerts.set({})
 	$userSettings.set({} as UserSettings)
 	$quickLinks.set([])
+	$externalLinks.set([])
 	sessionStorage.setItem("lo", "t") // prevent auto login on logout
 	pb.authStore.clear()
 	pb.realtime.unsubscribe()
@@ -44,6 +45,8 @@ export async function updateUserSettings() {
 		$userSettings.set(req.settings)
 		// Populate quick links from server
 		const serverLinks: QuickLink[] = req.settings?.quickLinks ?? []
+		// Populate external links from server
+		$externalLinks.set(req.settings?.externalLinks ?? [])
 		// Migrate any quick links from localStorage (one-time)
 		const localRaw = localStorage.getItem("besz-quick-links")
 		if (localRaw) {
@@ -81,6 +84,7 @@ export async function updateUserSettings() {
 		const createdSettings = await pb.collection("user_settings").create({ user: pb.authStore.record?.id })
 		$userSettings.set(createdSettings.settings)
 		$quickLinks.set([])
+		$externalLinks.set([])
 	} catch (e) {
 		console.error("create settings", e)
 	}
@@ -96,6 +100,19 @@ export async function saveQuickLinks(links: QuickLink[]) {
 		})
 	} catch (e) {
 		console.error("save quick links", e)
+	}
+}
+
+/** Save external links to server-side user settings */
+export async function saveExternalLinks(links: ExternalLink[]) {
+	$externalLinks.set(links)
+	try {
+		const req = await pb.collection("user_settings").getFirstListItem("", { fields: "id,settings" })
+		await pb.collection("user_settings").update(req.id, {
+			settings: { ...req.settings, externalLinks: links },
+		})
+	} catch (e) {
+		console.error("save external links", e)
 	}
 }
 

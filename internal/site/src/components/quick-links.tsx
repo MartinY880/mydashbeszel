@@ -9,6 +9,7 @@ import {
 	PencilIcon,
 	TrashIcon,
 	LinkIcon,
+	PlusIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -51,6 +52,13 @@ export function QuickLinks() {
 	const [editDomainUrl, setEditDomainUrl] = useState("")
 	const [editCategory, setEditCategory] = useState("")
 
+	// Add dialog state
+	const [addOpen, setAddOpen] = useState(false)
+	const [addName, setAddName] = useState("")
+	const [addLocalUrl, setAddLocalUrl] = useState("")
+	const [addDomainUrl, setAddDomainUrl] = useState("")
+	const [addCategory, setAddCategory] = useState("")
+
 	// Group links by category
 	const grouped = useMemo(() => {
 		const map = new Map<string, QuickLink[]>()
@@ -71,8 +79,21 @@ export function QuickLinks() {
 		return Array.from(cats).sort()
 	}, [quickLinks])
 
-	if (quickLinks.length === 0) {
-		return null
+	function addNewLink() {
+		if (!addName.trim()) return
+		const newLink: QuickLink = {
+			id: crypto.randomUUID(),
+			name: addName.trim(),
+			localUrl: addLocalUrl,
+			domainUrl: addDomainUrl,
+			category: addCategory,
+		}
+		saveQuickLinks([...quickLinks, newLink])
+		setAddOpen(false)
+		setAddName("")
+		setAddLocalUrl("")
+		setAddDomainUrl("")
+		setAddCategory("")
 	}
 
 	function openEditDialog(link: QuickLink) {
@@ -135,21 +156,35 @@ export function QuickLinks() {
 	return (
 		<>
 			<Card>
-				<CardHeader
-					className="pb-0 px-4 sm:px-6 pt-3 sm:pt-4 cursor-pointer select-none"
-					onClick={() => setIsOpen(!isOpen)}
-				>
+				<CardHeader className="pb-0 px-4 sm:px-6 pt-3 sm:pt-4">
 					<CardTitle className="flex items-center gap-2 text-base">
-						<LinkIcon className="h-4 w-4" />
-						<Trans>Quick Links</Trans>
-						<ChevronDownIcon
-							className={cn("h-4 w-4 ms-auto text-muted-foreground transition-transform duration-200", {
-								"rotate-180": isOpen,
-							})}
-						/>
+						<button
+							className="flex items-center gap-2 flex-1 cursor-pointer select-none"
+							onClick={() => setIsOpen(!isOpen)}
+						>
+							<LinkIcon className="h-4 w-4" />
+							<Trans>Quick Links</Trans>
+							<ChevronDownIcon
+								className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", {
+									"rotate-180": isOpen,
+								})}
+							/>
+						</button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-7 w-7"
+							title="Add quick link"
+							onClick={(e) => {
+								e.stopPropagation()
+								setAddOpen(true)
+							}}
+						>
+							<PlusIcon className="h-4 w-4" />
+						</Button>
 					</CardTitle>
 				</CardHeader>
-				{isOpen && (
+				{isOpen && quickLinks.length > 0 && (
 					<CardContent className="px-4 sm:px-6 pb-3 pt-3 space-y-4">
 						{Array.from(grouped.entries()).map(([category, links]) => (
 							<CategoryGroup
@@ -165,8 +200,96 @@ export function QuickLinks() {
 						))}
 					</CardContent>
 				)}
+				{isOpen && quickLinks.length === 0 && (
+					<CardContent className="px-4 sm:px-6 pb-3 pt-3">
+						<p className="text-sm text-muted-foreground italic">
+							<Trans>No quick links yet. Click + to add one.</Trans>
+						</p>
+					</CardContent>
+				)}
 				{!isOpen && <div className="pb-3" />}
 			</Card>
+
+			{/* Add Dialog */}
+			<Dialog open={addOpen} onOpenChange={setAddOpen}>
+				<DialogContent className="w-[90%] sm:max-w-md rounded-lg">
+					<DialogHeader>
+						<DialogTitle>
+							<Trans>Add Quick Link</Trans>
+						</DialogTitle>
+					</DialogHeader>
+					<div className="grid gap-4 py-2">
+						<div className="grid gap-2">
+							<Label htmlFor="add-ql-name">
+								<Trans>Name</Trans>
+							</Label>
+							<Input
+								id="add-ql-name"
+								placeholder="My App"
+								value={addName}
+								onChange={(e) => setAddName(e.target.value)}
+							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="add-ql-category">
+								<Trans>Category</Trans>
+							</Label>
+							<div className="flex gap-2">
+								<Input
+									id="add-ql-category"
+									placeholder="e.g. Media, Network, Home..."
+									value={addCategory}
+									onChange={(e) => setAddCategory(e.target.value)}
+								/>
+								{existingCategories.length > 0 && (
+									<Select value={addCategory} onValueChange={setAddCategory}>
+										<SelectTrigger className="w-[140px] shrink-0">
+											<SelectValue placeholder="Pick..." />
+										</SelectTrigger>
+										<SelectContent>
+											{existingCategories.map((cat) => (
+												<SelectItem key={cat} value={cat}>
+													{cat}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							</div>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="add-ql-local">
+								<Trans>Local URL</Trans>
+							</Label>
+							<Input
+								id="add-ql-local"
+								placeholder="http://192.168.1.100:8080"
+								value={addLocalUrl}
+								onChange={(e) => setAddLocalUrl(e.target.value)}
+							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="add-ql-domain">
+								<Trans>Domain URL</Trans>
+							</Label>
+							<Input
+								id="add-ql-domain"
+								placeholder="https://app.domain.com"
+								value={addDomainUrl}
+								onChange={(e) => setAddDomainUrl(e.target.value)}
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setAddOpen(false)}>
+							<Trans>Cancel</Trans>
+						</Button>
+						<Button onClick={addNewLink} disabled={!addName.trim()}>
+							<Trans>Add</Trans>
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			{/* Edit Dialog */}
 			<Dialog open={!!editingLink} onOpenChange={(open) => !open && setEditingLink(null)}>

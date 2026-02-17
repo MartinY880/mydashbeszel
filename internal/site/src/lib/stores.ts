@@ -1,5 +1,5 @@
 import { atom, computed, listenKeys, map, type ReadableAtom } from "nanostores"
-import type { AlertMap, ChartTimes, QuickLink, SystemRecord, UserSettings } from "@/types"
+import type { AlertMap, ChartTimes, ExternalLink, QuickLink, SystemRecord, UserSettings } from "@/types"
 import { pb } from "./api"
 import { Unit } from "./enums"
 
@@ -71,3 +71,4 @@ export const $longestSystemNameLen = atom(8)
 
 /** Quick links stored server-side in user_settings */
 export const $quickLinks = atom<QuickLink[]>([])
+export const $externalLinks = atom<ExternalLink[]>([])
