@@ -86,6 +86,7 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 	const [addToQuickLinks, setAddToQuickLinks] = useState(false)
 	const [quickLinkLocal, setQuickLinkLocal] = useState("")
 	const [quickLinkDomain, setQuickLinkDomain] = useState("")
+	const [quickLinkCategory, setQuickLinkCategory] = useState("")
 
 	useEffect(() => {
 		;(async () => {
@@ -128,6 +129,7 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 						name: data.name as string,
 						localUrl: quickLinkLocal || "",
 						domainUrl: quickLinkDomain || "",
+						category: quickLinkCategory || "",
 					}
 					saveQuickLinks([...$quickLinks.get(), newLink])
 				}
@@ -252,7 +254,17 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 								</Label>
 							</div>
 							{addToQuickLinks && (
-								<div className="mt-3 grid xs:grid-cols-[auto_1fr] gap-y-3 gap-x-4 items-center">								<Label htmlFor="local-url" className="xs:text-end text-sm">
+							<div className="mt-3 grid xs:grid-cols-[auto_1fr] gap-y-3 gap-x-4 items-center">
+								<Label htmlFor="ql-category" className="xs:text-end text-sm">
+									<Trans>Category</Trans>
+								</Label>
+								<Input
+									id="ql-category"
+									placeholder="e.g. Media, Network, Home..."
+									value={quickLinkCategory}
+									onChange={(e) => setQuickLinkCategory(e.target.value)}
+								/>
+								<Label htmlFor="local-url" className="xs:text-end text-sm">
 									<Trans>Local URL</Trans>
 								</Label>
 								<Input
@@ -260,17 +272,18 @@ export const SystemDialog = ({ setOpen, system }: { setOpen: (open: boolean) => 
 									placeholder="http://192.168.1.100:8080"
 									value={quickLinkLocal}
 									onChange={(e) => setQuickLinkLocal(e.target.value)}
-								/>									<Label htmlFor="domain-url" className="xs:text-end text-sm">
-										<Trans>Domain URL</Trans>
-									</Label>
-									<Input
-										id="domain-url"
-										placeholder="https://app.domain.com"
-										value={quickLinkDomain}
-										onChange={(e) => setQuickLinkDomain(e.target.value)}
-									/>
-								</div>
-							)}
+								/>
+								<Label htmlFor="domain-url" className="xs:text-end text-sm">
+									<Trans>Domain URL</Trans>
+								</Label>
+								<Input
+									id="domain-url"
+									placeholder="https://app.domain.com"
+									value={quickLinkDomain}
+									onChange={(e) => setQuickLinkDomain(e.target.value)}
+								/>
+							</div>
+						)}
 						</div>
 					)}
 					<DialogFooter className="flex justify-end gap-x-2 gap-y-3 flex-col mt-5">

@@ -10,13 +10,13 @@ import {
 	TrashIcon,
 	LinkIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn, useBrowserStorage } from "@/lib/utils"
-import { $quickLinks } from "@/lib/stores"
+import { $quickLinks, $allSystemsById } from "@/lib/stores"
 import { saveQuickLinks } from "@/lib/api"
 import type { QuickLink } from "@/types"
 import {
@@ -26,14 +26,50 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
+
+const STATUS_COLORS: Record<string, string> = {
+	up: "bg-green-500",
+	down: "bg-red-500",
+	paused: "bg-primary/40",
+	pending: "bg-yellow-500",
+}
 
 export function QuickLinks() {
 	const quickLinks = useStore($quickLinks)
+	const systemsById = useStore($allSystemsById)
 	const [isOpen, setIsOpen] = useBrowserStorage("ql-open", true)
 	const [editingLink, setEditingLink] = useState<QuickLink | null>(null)
 	const [editName, setEditName] = useState("")
 	const [editLocalUrl, setEditLocalUrl] = useState("")
 	const [editDomainUrl, setEditDomainUrl] = useState("")
+	const [editCategory, setEditCategory] = useState("")
+
+	// Group links by category
+	const grouped = useMemo(() => {
+		const map = new Map<string, QuickLink[]>()
+		for (const link of quickLinks) {
+			const cat = link.category || "Uncategorized"
+			if (!map.has(cat)) map.set(cat, [])
+			map.get(cat)!.push(link)
+		}
+		return map
+	}, [quickLinks])
+
+	// Collect existing categories for the select dropdown
+	const existingCategories = useMemo(() => {
+		const cats = new Set<string>()
+		for (const link of quickLinks) {
+			if (link.category) cats.add(link.category)
+		}
+		return Array.from(cats).sort()
+	}, [quickLinks])
 
 	if (quickLinks.length === 0) {
 		return null
@@ -44,13 +80,14 @@ export function QuickLinks() {
 		setEditName(link.name)
 		setEditLocalUrl(link.localUrl)
 		setEditDomainUrl(link.domainUrl)
+		setEditCategory(link.category || "")
 	}
 
 	function saveEdit() {
 		if (!editingLink) return
 		const updated = quickLinks.map((l) =>
 			l.id === editingLink.id
-				? { ...l, name: editName, localUrl: editLocalUrl, domainUrl: editDomainUrl }
+				? { ...l, name: editName, localUrl: editLocalUrl, domainUrl: editDomainUrl, category: editCategory }
 				: l
 		)
 		saveQuickLinks(updated)
@@ -62,14 +99,37 @@ export function QuickLinks() {
 	}
 
 	function moveLink(id: string, direction: -1 | 1) {
+		// Move within the full list (respects overall order)
 		const idx = quickLinks.findIndex((l) => l.id === id)
 		if (idx < 0) return
-		const newIdx = idx + direction
-		if (newIdx < 0 || newIdx >= quickLinks.length) return
+		// Find next item in the same category
+		const category = quickLinks[idx].category || "Uncategorized"
+		let targetIdx = -1
+		if (direction === -1) {
+			for (let i = idx - 1; i >= 0; i--) {
+				if ((quickLinks[i].category || "Uncategorized") === category) {
+					targetIdx = i
+					break
+				}
+			}
+		} else {
+			for (let i = idx + 1; i < quickLinks.length; i++) {
+				if ((quickLinks[i].category || "Uncategorized") === category) {
+					targetIdx = i
+					break
+				}
+			}
+		}
+		if (targetIdx < 0) return
 		const reordered = [...quickLinks]
 		const [item] = reordered.splice(idx, 1)
-		reordered.splice(newIdx, 0, item)
+		reordered.splice(targetIdx, 0, item)
 		saveQuickLinks(reordered)
+	}
+
+	function getSystemStatus(linkId: string): string | undefined {
+		const system = systemsById[linkId]
+		return system?.status
 	}
 
 	return (
@@ -90,19 +150,19 @@ export function QuickLinks() {
 					</CardTitle>
 				</CardHeader>
 				{isOpen && (
-					<CardContent className="px-4 sm:px-6 pb-3 pt-3">
-						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-							{quickLinks.map((link, idx) => (
-								<QuickLinkCard
-									key={link.id}
-									link={link}
-									onEdit={() => openEditDialog(link)}
-									onRemove={() => removeLink(link.id)}
-									onMoveLeft={idx > 0 ? () => moveLink(link.id, -1) : undefined}
-									onMoveRight={idx < quickLinks.length - 1 ? () => moveLink(link.id, 1) : undefined}
-								/>
-							))}
-						</div>
+					<CardContent className="px-4 sm:px-6 pb-3 pt-3 space-y-4">
+						{Array.from(grouped.entries()).map(([category, links]) => (
+							<CategoryGroup
+								key={category}
+								category={category}
+								links={links}
+								allLinks={quickLinks}
+								getSystemStatus={getSystemStatus}
+								onEdit={openEditDialog}
+								onRemove={removeLink}
+								onMove={moveLink}
+							/>
+						))}
 					</CardContent>
 				)}
 				{!isOpen && <div className="pb-3" />}
@@ -126,6 +186,33 @@ export function QuickLinks() {
 								value={editName}
 								onChange={(e) => setEditName(e.target.value)}
 							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="ql-category">
+								<Trans>Category</Trans>
+							</Label>
+							<div className="flex gap-2">
+								<Input
+									id="ql-category"
+									placeholder="e.g. Media, Network, Home..."
+									value={editCategory}
+									onChange={(e) => setEditCategory(e.target.value)}
+								/>
+								{existingCategories.length > 0 && (
+									<Select value={editCategory} onValueChange={setEditCategory}>
+										<SelectTrigger className="w-[140px] shrink-0">
+											<SelectValue placeholder="Pick..." />
+										</SelectTrigger>
+										<SelectContent>
+											{existingCategories.map((cat) => (
+												<SelectItem key={cat} value={cat}>
+													{cat}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							</div>
 						</div>
 						<div className="grid gap-2">
 							<Label htmlFor="ql-local">
@@ -164,24 +251,87 @@ export function QuickLinks() {
 	)
 }
 
+function CategoryGroup({
+	category,
+	links,
+	allLinks,
+	getSystemStatus,
+	onEdit,
+	onRemove,
+	onMove,
+}: {
+	category: string
+	links: QuickLink[]
+	allLinks: QuickLink[]
+	getSystemStatus: (id: string) => string | undefined
+	onEdit: (link: QuickLink) => void
+	onRemove: (id: string) => void
+	onMove: (id: string, direction: -1 | 1) => void
+}) {
+	const [isOpen, setIsOpen] = useBrowserStorage(`ql-cat-${category}`, true)
+
+	return (
+		<div>
+			<button
+				className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 hover:text-foreground transition-colors w-full"
+				onClick={() => setIsOpen(!isOpen)}
+			>
+				<ChevronDownIcon
+					className={cn("h-3 w-3 transition-transform duration-200", {
+						"-rotate-90": !isOpen,
+					})}
+				/>
+				{category}
+			</button>
+			{isOpen && (
+				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+					{links.map((link, idx) => (
+						<QuickLinkCard
+							key={link.id}
+							link={link}
+							status={getSystemStatus(link.id)}
+							onEdit={() => onEdit(link)}
+							onRemove={() => onRemove(link.id)}
+							onMoveLeft={idx > 0 ? () => onMove(link.id, -1) : undefined}
+							onMoveRight={idx < links.length - 1 ? () => onMove(link.id, 1) : undefined}
+						/>
+					))}
+				</div>
+			)}
+		</div>
+	)
+}
+
 function QuickLinkCard({
 	link,
+	status,
 	onEdit,
 	onRemove,
 	onMoveLeft,
 	onMoveRight,
 }: {
 	link: QuickLink
+	status?: string
 	onEdit: () => void
 	onRemove: () => void
 	onMoveLeft?: () => void
 	onMoveRight?: () => void
 }) {
+	const statusColor = status ? STATUS_COLORS[status] || "bg-primary/40" : undefined
+
 	return (
 		<div className="group relative flex flex-col gap-1.5 rounded-lg border border-border/60 bg-background p-2.5 transition-colors hover:bg-accent/50">
-			{/* Header row: name + action buttons */}
+			{/* Header row: status dot + name + action buttons */}
 			<div className="flex items-start justify-between gap-1">
-				<span className="font-medium text-xs leading-tight break-words min-w-0">{link.name}</span>
+				<span className="flex items-center gap-1.5 font-medium text-xs leading-tight break-words min-w-0">
+					{statusColor && (
+						<span
+							className={cn("shrink-0 size-2 rounded-full", statusColor)}
+							title={status}
+						/>
+					)}
+					{link.name}
+				</span>
 				<div className="flex items-center gap-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
 					{onMoveLeft && (
 						<Button

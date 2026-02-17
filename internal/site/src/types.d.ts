@@ -314,6 +314,7 @@ export interface QuickLink {
 	name: string
 	localUrl: string
 	domainUrl: string
+	category?: string
 }
 
 export interface SemVer {
