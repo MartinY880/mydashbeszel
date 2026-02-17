@@ -26,6 +26,7 @@ import {
 import { isAdmin, isReadOnlyUser, logOut, pb } from "@/lib/api"
 import { cn, runOnce } from "@/lib/utils"
 import { AddSystemButton } from "./add-system"
+import { ExternalLinksBar } from "./external-links"
 import { LangToggle } from "./lang-toggle"
 import { Logo } from "./logo"
 import { ModeToggle } from "./mode-toggle"
@@ -48,6 +49,8 @@ export default function Navbar() {
 				<Logo className="h-[1.1rem] md:h-5 fill-foreground" />
 			</Link>
 			<SearchButton />
+
+			<ExternalLinksBar />
 
 			{/** biome-ignore lint/a11y/noStaticElementInteractions: ignore */}
 			<div className="flex items-center ms-auto" onMouseEnter={() => import("@/components/routes/settings/general")}>
