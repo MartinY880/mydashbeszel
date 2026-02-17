@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{A0596E84-2522-6F31-0F43-77167BFA80D0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lhm", "lhm", "{28CDEEDE-816B-24E5-BCAF-307DB837F47C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "beszel_lhm", "agent\lhm\beszel_lhm.csproj", "{2DDC21BB-8864-8B98-F66C-F1F125877EBC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2DDC21BB-8864-8B98-F66C-F1F125877EBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DDC21BB-8864-8B98-F66C-F1F125877EBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DDC21BB-8864-8B98-F66C-F1F125877EBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DDC21BB-8864-8B98-F66C-F1F125877EBC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{28CDEEDE-816B-24E5-BCAF-307DB837F47C} = {A0596E84-2522-6F31-0F43-77167BFA80D0}
+		{2DDC21BB-8864-8B98-F66C-F1F125877EBC} = {28CDEEDE-816B-24E5-BCAF-307DB837F47C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5EAA00F5-2DBC-412A-BC5D-28E21EA9F367}
+	EndGlobalSection
+EndGlobal
